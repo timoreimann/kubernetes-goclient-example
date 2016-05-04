@@ -10,7 +10,7 @@ Example on how to interact with Kubernetes via the [Golang client library](https
 
 ## Kubernetes Version
 
-This sample projects uses a vendored copy of the Kubernetes 1.2 package (and its dependencies).
+This sample project includes a vendored copy of the Kubernetes 1.2 package (and its dependencies). It uses [govendor](https://github.com/kardianos/govendor).
 
 See Kubernetes' [Development Guide](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/development.md) on how to properly set up Kubernetes in your `GOPATH`.
 
