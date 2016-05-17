@@ -53,8 +53,8 @@ func (op *versionOperation) Do(c *client.Client) {
 
 type deployOperation struct {
 	image string
-	name string
-	port int
+	name  string
+	port  int
 }
 
 func (op *deployOperation) Do(c *client.Client) {
