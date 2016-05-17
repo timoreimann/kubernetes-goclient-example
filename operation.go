@@ -60,10 +60,9 @@ type deployOperation struct {
 func (op *deployOperation) Do(c *client.Client) {
 	appName := op.name
 	port := op.port
-	deploy := c.Extensions().Deployments(namespace)
 
 	// Define Deployments spec.
-	d := &extensions.Deployment{
+	deploySpec := &extensions.Deployment{
 		TypeMeta: vapi.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "extensions/v1beta1",
@@ -102,27 +101,19 @@ func (op *deployOperation) Do(c *client.Client) {
 		},
 	}
 
-	// Implement update-or-create logic (i.e., `kubectl apply`).
-	depl, err := deploy.Update(d)
+	// Implement deployment update-or-create semantics.
+	deploy := c.Extensions().Deployments(namespace)
+	_, err := deploy.Update(deploySpec)
 	switch {
 	case err == nil:
-		op.logSuccess(false, depl)
+		logger.Println("deployment controller updated")
 	case !errors.IsNotFound(err):
 		logger.Fatalf("failed to update deployment controller: %s", err)
 	default:
-		depl, err = deploy.Create(d)
+		_, err = deploy.Create(deploySpec)
 		if err != nil {
 			logger.Fatalf("failed to create deployment controller: %s", err)
 		}
-		op.logSuccess(true, depl)
+		logger.Println("deployment controller created")
 	}
-}
-
-func (op *deployOperation) logSuccess(isCreate bool, depl *extensions.Deployment) {
-	mode := "updated"
-	if isCreate {
-		mode = "created"
-	}
-
-	logger.Printf("deployment controller %s (received definition: %+v)\n", mode, depl)
 }
