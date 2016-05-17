@@ -31,6 +31,7 @@ import (
 	vapi "k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 const namespace string = "default"
@@ -115,5 +116,52 @@ func (op *deployOperation) Do(c *client.Client) {
 			logger.Fatalf("failed to create deployment controller: %s", err)
 		}
 		logger.Println("deployment controller created")
+	}
+
+	// Define service spec.
+	serviceSpec := &api.Service{
+		TypeMeta: vapi.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: api.ObjectMeta{
+			Name: appName,
+		},
+		Spec: api.ServiceSpec{
+			Type:     api.ServiceTypeClusterIP,
+			Selector: map[string]string{"app": appName},
+			Ports: []api.ServicePort{
+				api.ServicePort{
+					Protocol: api.ProtocolTCP,
+					Port:     80,
+					TargetPort: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(port),
+					},
+				},
+			},
+		},
+	}
+
+	// Implement service update-or-create semantics.
+	service := c.Services(namespace)
+	svc, err := service.Get(appName)
+	switch {
+	case err == nil:
+		serviceSpec.ObjectMeta.ResourceVersion = svc.ObjectMeta.ResourceVersion
+		serviceSpec.Spec.ClusterIP = svc.Spec.ClusterIP
+		_, err = service.Update(serviceSpec)
+		if err != nil {
+			logger.Fatalf("failed to update service: %s", err)
+		}
+		logger.Println("service updated")
+	case errors.IsNotFound(err):
+		_, err = service.Create(serviceSpec)
+		if err != nil {
+			logger.Fatalf("failed to create service: %s", err)
+		}
+		logger.Println("service created")
+	default:
+		logger.Fatalf("unexpected error: %s", err)
 	}
 }

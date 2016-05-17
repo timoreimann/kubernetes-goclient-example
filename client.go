@@ -67,8 +67,8 @@ func main() {
 	case "deploy":
 		op = &deployOperation{
 			image: "nginx:latest",
-			name: "nginx",
-			port: 80,
+			name:  "nginx",
+			port:  8080,
 		}
 	default:
 		usage(fmt.Sprintf("unknown operation: %s", opName))
