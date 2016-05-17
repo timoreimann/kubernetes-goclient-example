@@ -25,6 +25,9 @@ SOFTWARE.
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/resource"
@@ -59,8 +62,17 @@ type deployOperation struct {
 }
 
 func (op *deployOperation) Do(c *client.Client) {
+	if err := op.doDeployment(c); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := op.doService(c); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (op *deployOperation) doDeployment(c *client.Client) error {
 	appName := op.name
-	port := op.port
 
 	// Define Deployments spec.
 	deploySpec := &extensions.Deployment{
@@ -81,10 +93,10 @@ func (op *deployOperation) Do(c *client.Client) {
 				Spec: api.PodSpec{
 					Containers: []api.Container{
 						api.Container{
-							Name:  appName,
+							Name:  op.name,
 							Image: op.image,
 							Ports: []api.ContainerPort{
-								api.ContainerPort{ContainerPort: port, Protocol: api.ProtocolTCP},
+								api.ContainerPort{ContainerPort: op.port, Protocol: api.ProtocolTCP},
 							},
 							Resources: api.ResourceRequirements{
 								Limits: api.ResourceList{
@@ -109,14 +121,20 @@ func (op *deployOperation) Do(c *client.Client) {
 	case err == nil:
 		logger.Println("deployment controller updated")
 	case !errors.IsNotFound(err):
-		logger.Fatalf("failed to update deployment controller: %s", err)
+		return fmt.Errorf("could not update deployment controller: %s", err)
 	default:
 		_, err = deploy.Create(deploySpec)
 		if err != nil {
-			logger.Fatalf("failed to create deployment controller: %s", err)
+			return fmt.Errorf("could not create deployment controller: %s", err)
 		}
 		logger.Println("deployment controller created")
 	}
+
+	return nil
+}
+
+func (op *deployOperation) doService(c *client.Client) error {
+	appName := op.name
 
 	// Define service spec.
 	serviceSpec := &api.Service{
@@ -136,7 +154,7 @@ func (op *deployOperation) Do(c *client.Client) {
 					Port:     80,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
-						IntVal: int32(port),
+						IntVal: int32(op.port),
 					},
 				},
 			},
@@ -152,16 +170,18 @@ func (op *deployOperation) Do(c *client.Client) {
 		serviceSpec.Spec.ClusterIP = svc.Spec.ClusterIP
 		_, err = service.Update(serviceSpec)
 		if err != nil {
-			logger.Fatalf("failed to update service: %s", err)
+			return fmt.Errorf("failed to update service: %s", err)
 		}
 		logger.Println("service updated")
 	case errors.IsNotFound(err):
 		_, err = service.Create(serviceSpec)
 		if err != nil {
-			logger.Fatalf("failed to create service: %s", err)
+			return fmt.Errorf("failed to create service: %s", err)
 		}
 		logger.Println("service created")
 	default:
-		logger.Fatalf("unexpected error: %s", err)
+		return fmt.Errorf("unexpected error: %s", err)
 	}
+
+	return nil
 }
