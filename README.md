@@ -24,7 +24,7 @@ go build -o client
 where `<operation>` is one of the following:
 
 - `version`: Queries the Kubernetes server version.
-- `deploy`: Deploys NGINX via the [Deployments API](http://kubernetes.io/docs/user-guide/deployments/).
+- `deploy`: Deploys NGINX via the [Deployments API](http://kubernetes.io/docs/user-guide/deployments/) and exposes a [Service](http://kubernetes.io/docs/user-guide/services/).
 
 There is also a convenience script `run.sh` that builds on demand (or forcefully when `-b` is given as first parameter) and executes the client with all arguments passed along. That is, invoking
 
