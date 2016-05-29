@@ -85,6 +85,20 @@ func (op *deployOperation) doDeployment(c *client.Client) error {
 		},
 		Spec: extensions.DeploymentSpec{
 			Replicas: 1,
+			Strategy: extensions.DeploymentStrategy{
+				Type: extensions.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &extensions.RollingUpdateDeployment{
+					MaxUnavailable: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(0),
+					},
+					MaxSurge: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: int32(1),
+					},
+				},
+			},
+			RevisionHistoryLimit: intp(10),
 			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Name:   appName,
@@ -184,4 +198,10 @@ func (op *deployOperation) doService(c *client.Client) error {
 	}
 
 	return nil
+}
+
+func intp(i int) *int {
+	r := new(int)
+	*r = i
+	return r
 }
