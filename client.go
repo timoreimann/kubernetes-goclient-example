@@ -26,6 +26,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -35,7 +36,10 @@ import (
 )
 
 const (
-	proxyHost string = "http://127.0.0.1:8001"
+	defaultServer string = "http://127.0.0.1:8001"
+	serverEnvVar  string = "SERVER"
+	tokenEnvVar   string = "TOKEN"
+	caFileEnvVar  string = "CA_FILE"
 )
 
 var logger *log.Logger
@@ -74,11 +78,36 @@ func main() {
 		usage(fmt.Sprintf("unknown operation: %s", opName))
 	}
 
-	config := &restclient.Config{Host: proxyHost}
+	server, token, caData, err := parseConnectionParams()
+	if err != nil {
+		logger.Fatalf("failed to parse configuration parameters: %s", err)
+	}
+
+	config := &restclient.Config{
+		Host:            server,
+		BearerToken:     token,
+		TLSClientConfig: restclient.TLSClientConfig{CAData: caData},
+	}
 	c, err := client.New(config)
 	if err != nil {
 		logger.Fatalf("could not connect to Kubernetes API: %s", err)
 	}
 
 	op.Do(c)
+}
+
+func parseConnectionParams() (server, token string, caData []byte, err error) {
+	server = os.Getenv(serverEnvVar)
+	if len(server) == 0 {
+		server = defaultServer
+	}
+
+	token = os.Getenv(tokenEnvVar)
+
+	caFile := os.Getenv(caFileEnvVar)
+	if len(caFile) > 0 {
+		caData, err = ioutil.ReadFile(caFile)
+	}
+
+	return server, token, caData, err
 }
