@@ -8,9 +8,7 @@ A Golang version with support for vendoring (1.5+) is required.
 
 ## Kubernetes Version
 
-This sample project includes a vendored copy of the Kubernetes 1.2 package (and its dependencies). It uses [govendor](https://github.com/kardianos/govendor).
-
-See Kubernetes' [Development Guide](https://github.com/kubernetes/kubernetes/blob/master/docs/devel/development.md) on how to properly set up Kubernetes in your `GOPATH`.
+This sample project includes a vendored copy of the Kubernetes 1.2.5 package (and its dependencies). It uses [Glide](https://glide.sh/) for dependency management.
 
 ## Usage
 
