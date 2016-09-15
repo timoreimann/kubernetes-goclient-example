@@ -1,19 +1,13 @@
 package: github.com/timoreimann/kubernetes-goclient-example
 import:
-- package: k8s.io/kubernetes
-  version: v1.2.5
+- package: k8s.io/client-go
   subpackages:
-  - pkg/api
-  - pkg/api/errors
-  - pkg/api/resource
-  - pkg/api/unversioned
-  - pkg/apis/extensions
-  - pkg/client/restclient
-  - pkg/client/unversioned
-  - pkg/util/intstr
-  # The following package needs an alias since it got moved.
-  # See https://github.com/kubernetes/kubernetes/issues/23529
-- package: speter.net/go/exp/math/dec/inf
-  version: 42ca6cd68aa922bc3f32f1e056e61b65945d9ad7
-  repo: http://gopkg.in/inf.v0
-  vcs: git
+  - 1.4/kubernetes
+  - 1.4/kubernetes/typed/core/v1
+  - 1.4/pkg/api/errors
+  - 1.4/pkg/api/resource
+  - 1.4/pkg/api/unversioned
+  - 1.4/pkg/api/v1
+  - 1.4/pkg/apis/extensions/v1beta1
+  - 1.4/pkg/util/intstr
+  - 1.4/rest

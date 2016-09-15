@@ -1,9 +1,6 @@
 // Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-// See https://code.google.com/p/go/source/browse/CONTRIBUTORS
-// Licensed under the same terms as Go itself:
-// https://code.google.com/p/go/source/browse/LICENSE
 
 package http2
 
@@ -94,9 +91,28 @@ func requireCurl(t *testing.T) {
 }
 
 func curl(t *testing.T, args ...string) (container string) {
-	out, err := exec.Command("docker", append([]string{"run", "-d", "--net=host", "gohttp2/curl"}, args...)...).CombinedOutput()
+	out, err := exec.Command("docker", append([]string{"run", "-d", "--net=host", "gohttp2/curl"}, args...)...).Output()
 	if err != nil {
 		t.Skipf("Failed to run curl in docker: %v, %s", err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// Verify that h2load exists.
+func requireH2load(t *testing.T) {
+	out, err := dockerLogs(h2load(t, "--version"))
+	if err != nil {
+		t.Skipf("failed to probe h2load; skipping test: %s", out)
+	}
+	if !strings.Contains(string(out), "h2load nghttp2/") {
+		t.Skipf("h2load not present; skipping test. (Output=%q)", out)
+	}
+}
+
+func h2load(t *testing.T, args ...string) (container string) {
+	out, err := exec.Command("docker", append([]string{"run", "-d", "--net=host", "--entrypoint=/usr/local/bin/h2load", "gohttp2/curl"}, args...)...).Output()
+	if err != nil {
+		t.Skipf("Failed to run h2load in docker: %v, %s", err, out)
 	}
 	return strings.TrimSpace(string(out))
 }
@@ -149,4 +165,34 @@ func dockerLogs(container string) ([]byte, error) {
 func kill(container string) {
 	exec.Command("docker", "kill", container).Run()
 	exec.Command("docker", "rm", container).Run()
+}
+
+func cleanDate(res *http.Response) {
+	if d := res.Header["Date"]; len(d) == 1 {
+		d[0] = "XXX"
+	}
+}
+
+func TestSorterPoolAllocs(t *testing.T) {
+	ss := []string{"a", "b", "c"}
+	h := http.Header{
+		"a": nil,
+		"b": nil,
+		"c": nil,
+	}
+	sorter := new(sorter)
+
+	if allocs := testing.AllocsPerRun(100, func() {
+		sorter.SortStrings(ss)
+	}); allocs >= 1 {
+		t.Logf("SortStrings allocs = %v; want <1", allocs)
+	}
+
+	if allocs := testing.AllocsPerRun(5, func() {
+		if len(sorter.Keys(h)) != 3 {
+			t.Fatal("wrong result")
+		}
+	}); allocs > 0 {
+		t.Logf("Keys allocs = %v; want <1", allocs)
+	}
 }
