@@ -8,7 +8,7 @@ A Golang version with support for vendoring (1.5+) is required.
 
 ## Kubernetes Version
 
-This sample project includes a vendored copy of the Kubernetes 1.2.5 package (and its dependencies). It uses [Glide](https://glide.sh/) for dependency management.
+This sample project includes a vendored copy of the [client-go 1.4 package](https://github.com/kubernetes/client-go) (and its dependencies). It uses [Glide](https://glide.sh/) for dependency management.
 
 ## Usage
 
