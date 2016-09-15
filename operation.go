@@ -28,25 +28,25 @@ import (
 	"fmt"
 	"log"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
-	vapi "k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/intstr"
+	"k8s.io/client-go/1.4/kubernetes"
+	"k8s.io/client-go/1.4/pkg/api/errors"
+	"k8s.io/client-go/1.4/pkg/api/resource"
+	"k8s.io/client-go/1.4/pkg/api/unversioned"
+	"k8s.io/client-go/1.4/pkg/api/v1"
+	"k8s.io/client-go/1.4/pkg/apis/extensions/v1beta1"
+	"k8s.io/client-go/1.4/pkg/util/intstr"
 )
 
 const namespace string = "default"
 
 // operation represents a Kubernetes operation.
 type operation interface {
-	Do(c *client.Client)
+	Do(c *kubernetes.Clientset)
 }
 
 type versionOperation struct{}
 
-func (op *versionOperation) Do(c *client.Client) {
+func (op *versionOperation) Do(c *kubernetes.Clientset) {
 	info, err := c.Discovery().ServerVersion()
 	if err != nil {
 		logger.Fatalf("failed to retrieve server API version: %s\n", err)
@@ -61,7 +61,7 @@ type deployOperation struct {
 	port  int
 }
 
-func (op *deployOperation) Do(c *client.Client) {
+func (op *deployOperation) Do(c *kubernetes.Clientset) {
 	if err := op.doDeployment(c); err != nil {
 		log.Fatal(err)
 	}
@@ -71,58 +71,58 @@ func (op *deployOperation) Do(c *client.Client) {
 	}
 }
 
-func (op *deployOperation) doDeployment(c *client.Client) error {
+func (op *deployOperation) doDeployment(c *kubernetes.Clientset) error {
 	appName := op.name
 
 	// Define Deployments spec.
-	deploySpec := &extensions.Deployment{
-		TypeMeta: vapi.TypeMeta{
+	deploySpec := &v1beta1.Deployment{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "extensions/v1beta1",
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: v1.ObjectMeta{
 			Name: appName,
 		},
-		Spec: extensions.DeploymentSpec{
-			Replicas: 1,
-			Strategy: extensions.DeploymentStrategy{
-				Type: extensions.RollingUpdateDeploymentStrategyType,
-				RollingUpdate: &extensions.RollingUpdateDeployment{
-					MaxUnavailable: intstr.IntOrString{
+		Spec: v1beta1.DeploymentSpec{
+			Replicas: int32p(1),
+			Strategy: v1beta1.DeploymentStrategy{
+				Type: v1beta1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &v1beta1.RollingUpdateDeployment{
+					MaxUnavailable: &intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: int32(0),
 					},
-					MaxSurge: intstr.IntOrString{
+					MaxSurge: &intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: int32(1),
 					},
 				},
 			},
-			RevisionHistoryLimit: intp(10),
-			Template: api.PodTemplateSpec{
-				ObjectMeta: api.ObjectMeta{
+			RevisionHistoryLimit: int32p(10),
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: v1.ObjectMeta{
 					Name:   appName,
 					Labels: map[string]string{"app": appName},
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
-						api.Container{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						v1.Container{
 							Name:  op.name,
 							Image: op.image,
-							Ports: []api.ContainerPort{
-								api.ContainerPort{ContainerPort: op.port, Protocol: api.ProtocolTCP},
+							Ports: []v1.ContainerPort{
+								v1.ContainerPort{ContainerPort: int32(op.port), Protocol: v1.ProtocolTCP},
 							},
-							Resources: api.ResourceRequirements{
-								Limits: api.ResourceList{
-									api.ResourceCPU:    resource.MustParse("100m"),
-									api.ResourceMemory: resource.MustParse("256Mi"),
+							Resources: v1.ResourceRequirements{
+								Limits: v1.ResourceList{
+									v1.ResourceCPU:    resource.MustParse("100m"),
+									v1.ResourceMemory: resource.MustParse("256Mi"),
 								},
 							},
-							ImagePullPolicy: api.PullIfNotPresent,
+							ImagePullPolicy: v1.PullIfNotPresent,
 						},
 					},
-					RestartPolicy: api.RestartPolicyAlways,
-					DNSPolicy:     api.DNSClusterFirst,
+					RestartPolicy: v1.RestartPolicyAlways,
+					DNSPolicy:     v1.DNSClusterFirst,
 				},
 			},
 		},
@@ -147,24 +147,24 @@ func (op *deployOperation) doDeployment(c *client.Client) error {
 	return nil
 }
 
-func (op *deployOperation) doService(c *client.Client) error {
+func (op *deployOperation) doService(c *kubernetes.Clientset) error {
 	appName := op.name
 
 	// Define service spec.
-	serviceSpec := &api.Service{
-		TypeMeta: vapi.TypeMeta{
+	serviceSpec := &v1.Service{
+		TypeMeta: unversioned.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: v1.ObjectMeta{
 			Name: appName,
 		},
-		Spec: api.ServiceSpec{
-			Type:     api.ServiceTypeClusterIP,
+		Spec: v1.ServiceSpec{
+			Type:     v1.ServiceTypeClusterIP,
 			Selector: map[string]string{"app": appName},
-			Ports: []api.ServicePort{
-				api.ServicePort{
-					Protocol: api.ProtocolTCP,
+			Ports: []v1.ServicePort{
+				v1.ServicePort{
+					Protocol: v1.ProtocolTCP,
 					Port:     80,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
@@ -176,7 +176,7 @@ func (op *deployOperation) doService(c *client.Client) error {
 	}
 
 	// Implement service update-or-create semantics.
-	service := c.Services(namespace)
+	service := c.Core().Services(namespace)
 	svc, err := service.Get(appName)
 	switch {
 	case err == nil:
@@ -200,8 +200,8 @@ func (op *deployOperation) doService(c *client.Client) error {
 	return nil
 }
 
-func intp(i int) *int {
-	r := new(int)
+func int32p(i int32) *int32 {
+	r := new(int32)
 	*r = i
 	return r
 }

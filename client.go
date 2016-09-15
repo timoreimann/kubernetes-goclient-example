@@ -31,8 +31,8 @@ import (
 	"os"
 	"path"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/client-go/1.4/kubernetes"
+	"k8s.io/client-go/1.4/rest"
 )
 
 const (
@@ -83,12 +83,12 @@ func main() {
 		logger.Fatalf("failed to parse configuration parameters: %s", err)
 	}
 
-	config := &restclient.Config{
+	config := &rest.Config{
 		Host:            server,
 		BearerToken:     token,
-		TLSClientConfig: restclient.TLSClientConfig{CAData: caData},
+		TLSClientConfig: rest.TLSClientConfig{CAData: caData},
 	}
-	c, err := client.New(config)
+	c, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		logger.Fatalf("could not connect to Kubernetes API: %s", err)
 	}
