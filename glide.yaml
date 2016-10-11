@@ -1,7 +1,7 @@
 package: github.com/timoreimann/kubernetes-goclient-example
 import:
 - package: k8s.io/client-go
-  version: 93fcd402979cfad8a7151f96e016416947c6a3cb
+  version: master
   subpackages:
   - 1.4/kubernetes
   - 1.4/kubernetes/typed/core/v1
