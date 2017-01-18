@@ -201,7 +201,5 @@ func (op *deployOperation) doService(c *kubernetes.Clientset) error {
 }
 
 func int32p(i int32) *int32 {
-	r := new(int32)
-	*r = i
-	return r
+	return &i
 }
